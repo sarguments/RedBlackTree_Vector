@@ -8,6 +8,14 @@ CMemoryPool<st_Node> g_memPool(100, true);
 st_Node* g_rootNode;
 int g_nodeCount;
 
+st_Node Nil;	// 끝 리프노드. 무조건 블랙 / 데이터 무 / NULL 의 같은 용도.
+
+void InitTree(void)
+{
+	Nil._color = NODE_COLOR::BLACK;
+	//g_rootNode = &Nil;
+}
+
 bool InsertNode(int param)
 {
 	// 루트가 널인가 ?
