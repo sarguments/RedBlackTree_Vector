@@ -4,7 +4,7 @@
 #include "BinaryTree_core.h"
 #include "MemoryPool_G41.h"
 
-CMemoryPool<st_Node> g_memPool(100, true);
+CMemoryPool<st_Node> g_memPool(200, true);
 st_Node* g_rootNode;
 int g_nodeCount;
 
@@ -23,6 +23,7 @@ bool InsertNode(int param)
 	{
 		g_rootNode = g_memPool.Alloc();
 		g_rootNode->_value = param;
+		g_rootNode->_color = NODE_COLOR::BLACK;
 
 		wcout << L"inserted rootNode : " << g_rootNode->_value << endl;
 		++g_nodeCount;
@@ -242,4 +243,102 @@ bool ReleaseNode(st_Node * param)
 	--g_nodeCount;
 
 	return true;
+}
+
+st_Node * FindNode(int param)
+{
+	// 빈 트리일 경우
+	if (g_rootNode == nullptr || g_rootNode == &Nil)
+	{
+		return nullptr;
+	}
+
+	st_Node* foundNode = g_rootNode; // 초기 현재 포인터(루트)
+
+	// data가 일치하는 노드 찾는다.
+	while (foundNode != &Nil && foundNode->_value != param)
+	{
+		// 찾으려는 데이터가 노드의 데이터보다 작은 경우
+		if (param < foundNode->_value)
+		{
+			foundNode = foundNode->_left;
+		}
+		// 찾으려는 데이터가 노드의 데이터보다 큰 경우
+		else
+		{
+			foundNode = foundNode->_right;
+		}
+	}
+
+	// 못찾은 경우
+	if (foundNode == &Nil)
+	{
+		wprintf(L"NOT FOUND..\n");
+		return nullptr;
+	}
+
+	return foundNode;
+}
+
+void rotateLeft(st_Node * param)
+{
+	// 원래 N
+	st_Node* toRotateNode = param;
+
+	// 원래 N의 오른 자식의 왼편
+	st_Node* rightChildLeft = toRotateNode->_right->_left;
+
+	// N의 위치를 원래 N의 부모로 나타냄
+	// 일단 N이 어느방향 자식이었는지
+	if (toRotateNode == toRotateNode->_parent->_left)
+	{
+		// N의 위치 = N의 오른자식
+		toRotateNode->_parent->_left = toRotateNode->_right;
+		toRotateNode->_right->_parent = toRotateNode->_parent;
+	}
+	else
+	{
+		toRotateNode->_parent->_right = toRotateNode->_right;
+		toRotateNode->_right->_parent = toRotateNode->_parent;
+	}
+	
+	// N의 오른자식의 왼편 = 원래 N
+	toRotateNode->_right->_left = toRotateNode;
+	toRotateNode->_parent = toRotateNode->_right;
+
+	// N의 오른편 = 원래 N의 오른자식의 왼편자식
+	toRotateNode->_right = rightChildLeft;
+	rightChildLeft->_parent = toRotateNode;
+}
+
+// TODO : nullptr 예외처리 없음
+void rotateRight(st_Node * param)
+{
+	// 원래 N
+	st_Node* toRotateNode = param;
+
+	// 원래 N의 왼쪽 자식의 오른편
+	st_Node* leftChildRight = toRotateNode->_left->_right;
+
+	// N의 위치를 원래 N의 부모로 나타냄
+	// 일단 N이 어느방향 자식이었는지
+	if (toRotateNode == toRotateNode->_parent->_left)
+	{
+		// N의 위치 = N의 왼 자식
+		toRotateNode->_parent->_left = toRotateNode->_left;
+		toRotateNode->_left->_parent = toRotateNode->_parent;
+	}
+	else
+	{
+		toRotateNode->_parent->_right = toRotateNode->_left;
+		toRotateNode->_left->_parent = toRotateNode->_parent;
+	}
+
+	// N의 왼쪽 자식의 오른편 = 원래 N
+	toRotateNode->_left->_right = toRotateNode;
+	toRotateNode->_parent = toRotateNode->_left;
+
+	// N의 왼편 = 원래 N의 왼쪽 자식의 오른편 자식
+	toRotateNode->_left = leftChildRight;
+	leftChildRight->_parent = toRotateNode;
 }
