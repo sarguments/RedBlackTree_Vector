@@ -17,9 +17,8 @@ void InitTree(void)
 
 bool InsertNode(int param)
 {
-	// TODO : 루트가 Nil? (추가한거 싹 비운다음 처음으로 추가할때)
 	// 루트가 널인가 ?
-	if (g_rootNode == nullptr || g_rootNode == &Nil)
+	if (g_rootNode == nullptr)
 	{
 		g_rootNode = g_memPool.Alloc();
 		g_rootNode->_value = param;
@@ -240,6 +239,13 @@ bool ReleaseNode(st_Node * param)
 	ReleaseNode(param->_right);
 
 	g_memPool.Free(param);
+
+	// 루트를 삭제할 경우 루트를 nullptr로
+	if (param == g_rootNode)
+	{
+		g_rootNode = nullptr;
+	}
+
 	--g_nodeCount;
 
 	return true;
@@ -373,7 +379,7 @@ void grandLeftAlign(st_Node * param)
 		*/ ////////////////////////////////////////////////
 		if (nowNode->_parent->_color == NODE_COLOR::BLACK)
 		{
-			wcout << L"nowNode is BLACK" << endl;
+			wcout << L"nowNode's parent is BLACK : align END" << endl;
 			break;
 		}
 
@@ -393,7 +399,7 @@ void grandLeftAlign(st_Node * param)
 			localParent->_color == NODE_COLOR::RED &&
 			localParent->_parent->_right->_color == NODE_COLOR::RED)
 		{
-			wcout << L"type 1." << endl;
+			wcout << L"type 1. nowNode is " << nowNode->_value << endl;
 
 			//	부모와 삼촌을 블랙으로 바꾸고, 할아버지는 레드로 바꾼다.
 			localParent->_color = NODE_COLOR::BLACK;
@@ -405,13 +411,14 @@ void grandLeftAlign(st_Node * param)
 			//	할아버지를 새 노드로 잡고 다시 확인.
 			nowNode = localParent->_parent;
 
-			if (nowNode->_parent == nullptr)
+			// 새 노드가 루트노드이면 break
+			if (nowNode == g_rootNode)
 			{
-				wcout << L"nowNode's parent is nullptr(ROOT)" << endl;
+				wcout << L"nowNode is rootNode.. Align End" << endl;
 				break;
 			}
 
-			continue;
+			return;
 		}
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -431,7 +438,7 @@ void grandLeftAlign(st_Node * param)
 			localParent->_color == NODE_COLOR::RED &&
 			localParent->_parent->_right->_color == NODE_COLOR::BLACK)
 		{
-			wcout << L"type 2." << endl;
+			wcout << L"type 2. nowNode is " << nowNode->_value << endl;
 
 			//	색상만 맞추는걸로 끝내지 않고, 회전을 통해서 밸런스를 맞춰 준다.
 			//	회전을 위해선 좌측 또는 우측의 한쪽 방향으로 노드가 몰려있는게 좋다.
@@ -463,7 +470,7 @@ void grandLeftAlign(st_Node * param)
 			localParent->_color == NODE_COLOR::RED &&
 			localParent->_parent->_right->_color == NODE_COLOR::BLACK)
 		{
-			wcout << L"type 3." << endl;
+			wcout << L"type 3. nowNode is " << nowNode->_value << endl;
 
 			//	부모를 블랙으로
 			localParent->_color = NODE_COLOR::BLACK;
@@ -496,7 +503,7 @@ void grandRightAlign(st_Node * param)
 		*/ ////////////////////////////////////////////////
 		if (nowNode->_parent->_color == NODE_COLOR::BLACK)
 		{
-			wcout << L"nowNode is BLACK" << endl;
+			wcout << L"nowNode's parent is BLACK : align END" << endl;
 			break;
 		}
 
@@ -516,7 +523,7 @@ void grandRightAlign(st_Node * param)
 			localParent->_color == NODE_COLOR::RED &&
 			localParent->_parent->_left->_color == NODE_COLOR::RED)
 		{
-			wcout << L"type 1." << endl;
+			wcout << L"type 1. nowNode is " << nowNode->_value << endl;
 
 			//	부모와 삼촌을 블랙으로 바꾸고, 할아버지는 레드로 바꾼다.
 			localParent->_color = NODE_COLOR::BLACK;
@@ -528,13 +535,14 @@ void grandRightAlign(st_Node * param)
 			//	할아버지를 새 노드로 잡고 다시 확인.
 			nowNode = localParent->_parent;
 
-			if (nowNode->_parent == nullptr)
+			// 새 노드가 루트노드이면 break
+			if (nowNode == g_rootNode)
 			{
-				wcout << L"nowNode's parent is nullptr(ROOT)" << endl;
+				wcout << L"nowNode is rootNode.. Align End" << endl;
 				break;
 			}
 
-			continue;
+			return;
 		}
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -554,7 +562,7 @@ void grandRightAlign(st_Node * param)
 			localParent->_color == NODE_COLOR::RED &&
 			localParent->_parent->_left->_color == NODE_COLOR::BLACK)
 		{
-			wcout << L"type 2." << endl;
+			wcout << L"type 2. nowNode is " << nowNode->_value << endl;
 
 			//	색상만 맞추는걸로 끝내지 않고, 회전을 통해서 밸런스를 맞춰 준다.
 			//	회전을 위해선 좌측 또는 우측의 한쪽 방향으로 노드가 몰려있는게 좋다.
@@ -586,7 +594,7 @@ void grandRightAlign(st_Node * param)
 			localParent->_color == NODE_COLOR::RED &&
 			localParent->_parent->_left->_color == NODE_COLOR::BLACK)
 		{
-			wcout << L"type 3." << endl;
+			wcout << L"type 3. nowNode is " << nowNode->_value << endl;
 
 			//	부모를 블랙으로
 			localParent->_color = NODE_COLOR::BLACK;
@@ -598,9 +606,6 @@ void grandRightAlign(st_Node * param)
 			rotateLeft(localParent->_parent);
 		}
 
-		// TODO : 마지막에 루트는 블랙
-		g_rootNode->_color = NODE_COLOR::BLACK;
-
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 	}
@@ -611,15 +616,16 @@ void grandRightAlign(st_Node * param)
 
 void AlignInsert(int param)
 {
-	// TODO : 루트가 Nil? (추가한거 싹 비운다음 처음으로 추가할때)
+	wcout << L"--------------------------------------------" << endl;
+
 	// 루트가 널인가 ?
-	if (g_rootNode == nullptr || g_rootNode == &Nil)
+	if (g_rootNode == nullptr)
 	{
 		g_rootNode = g_memPool.Alloc();
 		g_rootNode->_value = param;
 		g_rootNode->_color = NODE_COLOR::BLACK;
 
-		wcout << L"inserted rootNode : " << g_rootNode->_value << endl;
+		wcout << L"inserted rootNode : " << g_rootNode->_value << L"no Align.." << endl;
 		++g_nodeCount;
 
 		// 넣고 끝냄
@@ -649,6 +655,7 @@ void AlignInsert(int param)
 			else
 			{
 				// 같은 경우
+				g_memPool.Free(newNode);
 				return;
 			}
 
@@ -675,38 +682,32 @@ void AlignInsert(int param)
 		}
 		else
 		{
-			// 같은 값 들어온 경우 break
+			// 같은 값 들어온 경우 return
 			return;
 		}
 	}
 
-	// 넣은게 루트였으면 바로 리턴
-	if (localNode->_parent == nullptr)
+	// TODO : 여기 수정해야함.. 141넣으면 문제 발생
+	// 타고 올라갈때 부모가 할아버지의 어느 방향인지 계속 계산
+	while (1)
 	{
-		return;
-	}
-	
-	// TODO : 루트 블랙 언제?
-	if (localNode->_parent == g_rootNode)
-	{
-		localNode->_parent->_color = NODE_COLOR::BLACK;
+		// 부모가 블랙인 경우 바로 리턴
+		if (localNode->_parent->_color == NODE_COLOR::BLACK)
+		{
+			wcout << L"parent is BLACK.. NO Align" << endl;
+			return;
+		}
+
+		if (localNode->_parent == localNode->_parent->_parent->_left)
+		{
+			wcout << L"parent is Grand's Left.. leftAlign" << endl;
+			grandLeftAlign(localNode);
+		}
+		else
+		{
+			wcout << L"parent is Grand's Right.. RightAlign" << endl;
+			grandRightAlign(localNode);
+		}
 	}
 
-	// 부모가 블랙인 경우 바로 리턴
-	if (localNode->_parent->_color == NODE_COLOR::BLACK)
-	{
-		wcout << L"parent is BLACK" << endl;
-		return;
-	}
-
-	if (localNode->_parent == localNode->_parent->_parent->_left)
-	{
-		wcout << L"parent is Grand's Left.. leftAlign" << endl;
-		grandLeftAlign(localNode);
-	}
-	else
-	{
-		wcout << L"parent is Grand's Right.. ReftAlign" << endl;
-		grandRightAlign(localNode);
-	}
 }
