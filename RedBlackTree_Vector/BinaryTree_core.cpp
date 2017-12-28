@@ -13,13 +13,13 @@ st_Node Nil;	// 끝 리프노드. 무조건 블랙 / 데이터 무 / NULL 의 같은 용도.
 void InitTree(void)
 {
 	Nil._color = NODE_COLOR::BLACK;
-	//g_rootNode = &Nil;
 }
 
 bool InsertNode(int param)
 {
+	// TODO : 루트가 Nil? (추가한거 싹 비운다음 처음으로 추가할때)
 	// 루트가 널인가 ?
-	if (g_rootNode == nullptr)
+	if (g_rootNode == nullptr || g_rootNode == &Nil)
 	{
 		g_rootNode = g_memPool.Alloc();
 		g_rootNode->_value = param;
@@ -37,7 +37,7 @@ bool InsertNode(int param)
 
 	while (1)
 	{
-		if (localNode == nullptr)
+		if (localNode == &Nil)
 		{
 			st_Node* newNode = g_memPool.Alloc();
 			newNode->_value = param;
@@ -89,7 +89,7 @@ bool InsertNode(int param)
 bool DeleteNode(int param)
 {
 	// 빈 트리일 경우
-	if (g_rootNode == nullptr)
+	if (g_rootNode == nullptr || g_rootNode == &Nil)
 	{
 		return false;
 	}
@@ -98,7 +98,7 @@ bool DeleteNode(int param)
 	st_Node* delNode = g_rootNode; // 초기 현재 포인터(루트)
 
 	// data가 일치하는 노드 찾는다.
-	while (delNode != nullptr && delNode->_value != param)
+	while (delNode != &Nil && delNode->_value != param)
 	{
 		// 현재포인터를 부모포인터로 설정
 		delParent = delNode;
@@ -116,7 +116,7 @@ bool DeleteNode(int param)
 	}
 
 	// 못찾은 경우
-	if (delNode == nullptr)
+	if (delNode == &Nil)
 	{
 		wprintf(L"NOT FOUND.. delete data\n");
 		return false;
@@ -135,28 +135,29 @@ void inDeleteNode(st_Node * parent, st_Node * node)
 	st_Node* toDelNode = node;
 
 	// 왼쪽이나 오른쪽 자식만 있는 경우
-	if (toDelNode->_left == nullptr || toDelNode->_right == nullptr)
+	if (toDelNode->_left == &Nil || toDelNode->_right == &Nil)
 	{
-		st_Node* delNodeChild = nullptr;
+		st_Node* delNodeChild = &Nil;
 
 		// 삭제할 노드의 자식노드
-		if (toDelNode->_left != nullptr)
+		if (toDelNode->_left != &Nil)
 		{
 			// 왼쪽만 있는 경우
 			delNodeChild = toDelNode->_left;
 		}
-		else if (toDelNode->_right != nullptr)
+		else if (toDelNode->_right != &Nil)
 		{
 			// 오른쪽만 있는 경우
 			delNodeChild = toDelNode->_right;
 		}
-		// 자식노드가 없는 경우는 nullptr
+		// TODO : 자식노드가 없는 경우는 &Nil
 
 		// 삭제할 노트가 루트노드이면
 		if (toDelNode == g_rootNode)
 		{
 			g_rootNode = delNodeChild;
 
+			// 루트의 부모 X
 			if (g_rootNode != nullptr)
 			{
 				g_rootNode->_parent = nullptr;
@@ -177,7 +178,8 @@ void inDeleteNode(st_Node * parent, st_Node * node)
 				parent->_right = delNodeChild;
 			}
 
-			if (delNodeChild != nullptr)
+			// 부모 연결
+			if (delNodeChild != &Nil)
 			{
 				delNodeChild->_parent = parent;
 			}
@@ -190,7 +192,7 @@ void inDeleteNode(st_Node * parent, st_Node * node)
 		st_Node* rightLowNode = toDelNode->_right; // 오른쪽에서 가장 작은 노드
 
 		// 오른쪽에서 가장 작은 노드를 찾음
-		while (rightLowNode->_left != nullptr)
+		while (rightLowNode->_left != &Nil)
 		{
 			rightLowNodeParent = rightLowNode;
 			rightLowNode = rightLowNode->_left;
@@ -208,7 +210,8 @@ void inDeleteNode(st_Node * parent, st_Node * node)
 			rightLowNodeParent->_right = rightLowNode->_right;
 		}
 
-		if (rightLowNode->_right != nullptr)
+		// 부모 연결
+		if (rightLowNode->_right != &Nil)
 		{
 			rightLowNode->_right->_parent = rightLowNodeParent;
 		}
@@ -227,7 +230,7 @@ void inDeleteNode(st_Node * parent, st_Node * node)
 
 bool ReleaseNode(st_Node * param)
 {
-	if (param == nullptr)
+	if (param == &Nil)
 	{
 		return false;
 	}
