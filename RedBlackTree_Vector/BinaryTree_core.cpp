@@ -4,7 +4,7 @@
 #include "BinaryTree_core.h"
 #include "MemoryPool_G41.h"
 
-CMemoryPool<st_Node> g_memPool(200, true);
+CMemoryPool<st_Node> g_memPool(400, true);
 st_Node* g_rootNode;
 int g_nodeCount;
 
@@ -150,7 +150,7 @@ void inDeleteNode(st_Node * parent, st_Node * node)
 			// 오른쪽만 있는 경우
 			delNodeChild = toDelNode->_right;
 		}
-		// TODO : 자식노드가 없는 경우는 &Nil
+		// 자식노드가 없는 경우는 &Nil
 
 		// 삭제할 노트가 루트노드이면
 		if (toDelNode == g_rootNode)
@@ -316,7 +316,7 @@ void rotateLeft(st_Node * param)
 		toRotateNode->_parent->_right = toRotateNode->_right;
 		toRotateNode->_right->_parent = toRotateNode->_parent;
 	}
-	
+
 	// N의 오른자식의 왼편 = 원래 N
 	toRotateNode->_right->_left = toRotateNode;
 	toRotateNode->_parent = toRotateNode->_right;
@@ -366,10 +366,9 @@ void rotateRight(st_Node * param)
 	leftChildRight->_parent = toRotateNode;
 }
 
-// 할아버지 기준으로 내 부모가 왼쪽
-void grandLeftAlign(st_Node * param)
+void fixedAlign(st_Node * param)
 {
-	st_Node* nowNode = param;
+	st_Node *nowNode = param;
 
 	while (1)
 	{
@@ -383,231 +382,198 @@ void grandLeftAlign(st_Node * param)
 			break;
 		}
 
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		/*/////////////////////////////////////////
-		//		  GP        |		  GP         //
-		//		 /  \		|		 /  \		 //
-		//		P(R) U(R)	|		P(R) U(R)	 //
-		//	   / 			|	     \			 //
-		//	  N(R)			|	      N(R)		 //
-		*//////////////////////////////////////////
-		//1. 나도 부모도 삼촌도 레드.
-		st_Node* localParent = nowNode->_parent;
-		if (nowNode->_color == NODE_COLOR::RED &&
-			localParent->_color == NODE_COLOR::RED &&
-			localParent->_parent->_right->_color == NODE_COLOR::RED)
+		// 부모 노드가 할아버지의 왼쪽인지 오른쪽인지에 따라 분기
+		if (nowNode->_parent == nowNode->_parent->_parent->_left)
 		{
-			wcout << L"type 1. nowNode is " << nowNode->_value << endl;
-
-			//	부모와 삼촌을 블랙으로 바꾸고, 할아버지는 레드로 바꾼다.
-			localParent->_color = NODE_COLOR::BLACK;
-			localParent->_parent->_right->_color = NODE_COLOR::BLACK;
-			localParent->_parent->_color = NODE_COLOR::RED;
-
-			//	할아버지가 레드로 바뀜으로 인해서, 할아버지 상단의 색상도 모두 비교를 해보아야 한다.
-			//	그래서 결국 ROOT 노드까지 올라가면서 이를 반복 확인 해야한다.
-			//	할아버지를 새 노드로 잡고 다시 확인.
-			nowNode = localParent->_parent;
-
-			// 새 노드가 루트노드이면 break
-			if (nowNode == g_rootNode)
+			/*/////////////////////////////////////////
+			//		  GP        |		  GP         //
+			//		 /  \		|		 /  \		 //
+			//		P(R) U(R)	|		P(R) U(R)	 //
+			//	   / 			|	     \			 //
+			//	  N(R)			|	      N(R)		 //
+			*//////////////////////////////////////////
+			//1. 나도 부모도 삼촌도 레드.
+			st_Node *localParent = nowNode->_parent;
+			if (nowNode->_color == NODE_COLOR::RED &&
+				localParent->_color == NODE_COLOR::RED &&
+				localParent->_parent->_right->_color == NODE_COLOR::RED)
 			{
-				wcout << L"nowNode is rootNode.. Align End" << endl;
-				break;
+				wcout << L"type 1. nowNode is " << nowNode->_value << endl;
+
+				//	부모와 삼촌을 블랙으로 바꾸고, 할아버지는 레드로 바꾼다.
+				localParent->_color = NODE_COLOR::BLACK;
+				localParent->_parent->_right->_color = NODE_COLOR::BLACK;
+				localParent->_parent->_color = NODE_COLOR::RED;
+
+				//	할아버지가 레드로 바뀜으로 인해서, 할아버지 상단의 색상도 모두 비교를 해보아야 한다.
+				//	그래서 결국 ROOT 노드까지 올라가면서 이를 반복 확인 해야한다.
+				//	할아버지를 새 노드로 잡고 다시 확인.
+				nowNode = localParent->_parent;
+
+				// 새 노드가 루트노드이면 break
+				if (nowNode == g_rootNode)
+				{
+					wcout << L"nowNode is rootNode.. Align End" << endl;
+
+					g_rootNode->_color = NODE_COLOR::BLACK;
+					break;
+				}
+
+				continue;
+			}
+			/*///////////////////
+			//		 GP        //
+			//		/  \	   //
+			//	   P(R) U(B)   //
+			//	    \		   //
+			//		 N(R)	   //
+			*////////////////////
+			//2. 나는 오른레드, 부모도 레드, 삼촌은 블랙 상황.
+			localParent = nowNode->_parent;
+			if (nowNode == localParent->_right &&
+				nowNode->_color == NODE_COLOR::RED &&
+				localParent->_color == NODE_COLOR::RED &&
+				localParent->_parent->_right->_color == NODE_COLOR::BLACK)
+			{
+				wcout << L"type 2. nowNode is " << nowNode->_value << endl;
+
+				//	색상만 맞추는걸로 끝내지 않고, 회전을 통해서 밸런스를 맞춰 준다.
+				//	회전을 위해선 좌측 또는 우측의 한쪽 방향으로 노드가 몰려있는게 좋다.
+				//	그러므로 우선  3번조건 상황으로 만든다.
+
+				//	나는 레드, 부모의 오른쪽 노드, 부모도 레드, 인 경우에는
+				//	부모기준으로 좌회전하여 신규노드를 부모의 위치로 올리고,
+				//	부모를 신노드 왼쪽 자식으로 옮겨서 밸런스를 맞춘다.
+				rotateLeft(localParent);
+
+				//	이로서 2번 상황은 3번 상황으로 변경 되었음.
+				nowNode = localParent;
 			}
 
-			return;
-		}
-
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		/*///////////////////
-		//		 GP        //
-		//		/  \	   //
-		//	   P(R) U(B)   //
-		//	    \		   //
-		//		 N(R)	   //
-		*////////////////////
-		//2. 나는 오른레드, 부모도 레드, 삼촌은 블랙 상황.
-		localParent = nowNode->_parent;
-		if (nowNode == localParent->_right &&
-			nowNode->_color == NODE_COLOR::RED &&
-			localParent->_color == NODE_COLOR::RED &&
-			localParent->_parent->_right->_color == NODE_COLOR::BLACK)
-		{
-			wcout << L"type 2. nowNode is " << nowNode->_value << endl;
-
-			//	색상만 맞추는걸로 끝내지 않고, 회전을 통해서 밸런스를 맞춰 준다.
-			//	회전을 위해선 좌측 또는 우측의 한쪽 방향으로 노드가 몰려있는게 좋다.
-			//	그러므로 우선  3번조건 상황으로 만든다.
-
-			//	나는 레드, 부모의 오른쪽 노드, 부모도 레드, 인 경우에는
-			//	부모기준으로 좌회전하여 신규노드를 부모의 위치로 올리고,
-			//	부모를 신노드 왼쪽 자식으로 옮겨서 밸런스를 맞춘다.
-			rotateLeft(localParent);
-
-			//	이로서 2번 상황은 3번 상황으로 변경 되었음.
-			nowNode = localParent;
-		}
-
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		/*///////////////////
-		//	 	  GP       //
-		//	   	 /  \	   //
-		//	    P(R) U(B)  //
-		//	   /		   //
-		//	  N(R)		   //
-		*////////////////////
-		//3. 나는 왼레드, 부모도 레드, 삼촌은 블랙
-		localParent = nowNode->_parent;
-		if (nowNode == localParent->_left &&
-			nowNode->_color == NODE_COLOR::RED &&
-			localParent->_color == NODE_COLOR::RED &&
-			localParent->_parent->_right->_color == NODE_COLOR::BLACK)
-		{
-			wcout << L"type 3. nowNode is " << nowNode->_value << endl;
-
-			//	부모를 블랙으로
-			localParent->_color = NODE_COLOR::BLACK;
-
-			//	할아버지는 레드로
-			localParent->_parent->_color = NODE_COLOR::RED;
-
-			//	할아버지 기준으로 우회전!
-			rotateRight(localParent->_parent);
-		}
-
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-	}
-	
-	// 마지막에 루트는 블랙
-	g_rootNode->_color = NODE_COLOR::BLACK;
-}
-
-// 할아버지 기준으로 내 부모가 오른쪽
-void grandRightAlign(st_Node * param)
-{
-	st_Node* nowNode = param;
-
-	while (1)
-	{
-		/* ////////////////////////////////////////////////
-		신규 노드의 부모가 블랙이라면 전혀 문제가 없음.
-		아래의 문제 상황은 부모가 레드인 경우 해당됨.
-		*/ ////////////////////////////////////////////////
-		if (nowNode->_parent->_color == NODE_COLOR::BLACK)
-		{
-			wcout << L"nowNode's parent is BLACK : align END" << endl;
-			break;
-		}
-
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		/*///////////////////////////////////////////
-		//		  GP        |	 	  GP           //
-		//		 /  \		|	 	 /  \		   //
-		//	   U(R)  P(R)	|	   U(R)  P(R)	   //
-		//	        / 		|	          \ 	   //
-		//	       N(R)	  	|	           N(R)	   //
-		*////////////////////////////////////////////
-		//1. 나도 부모도 삼촌도 레드.
-		st_Node* localParent = nowNode->_parent;
-		if (nowNode->_color == NODE_COLOR::RED &&
-			localParent->_color == NODE_COLOR::RED &&
-			localParent->_parent->_left->_color == NODE_COLOR::RED)
-		{
-			wcout << L"type 1. nowNode is " << nowNode->_value << endl;
-
-			//	부모와 삼촌을 블랙으로 바꾸고, 할아버지는 레드로 바꾼다.
-			localParent->_color = NODE_COLOR::BLACK;
-			localParent->_parent->_left->_color = NODE_COLOR::BLACK;
-			localParent->_parent->_color = NODE_COLOR::RED;
-
-			//	할아버지가 레드로 바뀜으로 인해서, 할아버지 상단의 색상도 모두 비교를 해보아야 한다.
-			//	그래서 결국 ROOT 노드까지 올라가면서 이를 반복 확인 해야한다.
-			//	할아버지를 새 노드로 잡고 다시 확인.
-			nowNode = localParent->_parent;
-
-			// 새 노드가 루트노드이면 break
-			if (nowNode == g_rootNode)
+			/*///////////////////
+			//	 	  GP       //
+			//	   	 /  \	   //
+			//	    P(R) U(B)  //
+			//	   /		   //
+			//	  N(R)		   //
+			*////////////////////
+			//3. 나는 왼레드, 부모도 레드, 삼촌은 블랙
+			localParent = nowNode->_parent;
+			if (nowNode == localParent->_left &&
+				nowNode->_color == NODE_COLOR::RED &&
+				localParent->_color == NODE_COLOR::RED &&
+				localParent->_parent->_right->_color == NODE_COLOR::BLACK)
 			{
-				wcout << L"nowNode is rootNode.. Align End" << endl;
-				break;
+				wcout << L"type 3. nowNode is " << nowNode->_value << endl;
+
+				//	부모를 블랙으로
+				localParent->_color = NODE_COLOR::BLACK;
+
+				//	할아버지는 레드로
+				localParent->_parent->_color = NODE_COLOR::RED;
+
+				//	할아버지 기준으로 우회전!
+				rotateRight(localParent->_parent);
+			}
+		}
+		else
+		{
+			/*///////////////////////////////////////////
+			//		  GP        |	 	  GP           //
+			//		 /  \		|	 	 /  \		   //
+			//	   U(R)  P(R)	|	   U(R)  P(R)	   //
+			//	        / 		|	          \ 	   //
+			//	       N(R)	  	|	           N(R)	   //
+			*////////////////////////////////////////////
+			//1. 나도 부모도 삼촌도 레드.
+			st_Node *localParent = nowNode->_parent;
+			if (nowNode->_color == NODE_COLOR::RED &&
+				localParent->_color == NODE_COLOR::RED &&
+				localParent->_parent->_left->_color == NODE_COLOR::RED)
+			{
+				wcout << L"type 1. nowNode is " << nowNode->_value << endl;
+
+				//	부모와 삼촌을 블랙으로 바꾸고, 할아버지는 레드로 바꾼다.
+				localParent->_color = NODE_COLOR::BLACK;
+				localParent->_parent->_left->_color = NODE_COLOR::BLACK;
+				localParent->_parent->_color = NODE_COLOR::RED;
+
+				//	할아버지가 레드로 바뀜으로 인해서, 할아버지 상단의 색상도 모두 비교를 해보아야 한다.
+				//	그래서 결국 ROOT 노드까지 올라가면서 이를 반복 확인 해야한다.
+				//	할아버지를 새 노드로 잡고 다시 확인.
+				nowNode = localParent->_parent;
+
+				// 새 노드가 루트노드이면 break
+				if (nowNode == g_rootNode)
+				{
+					wcout << L"nowNode is rootNode.. Align End" << endl;
+
+					g_rootNode->_color = NODE_COLOR::BLACK;
+
+					break;
+				}
+
+				continue;
 			}
 
-			return;
+			/*///////////////////
+			//		 GP        //
+			//		/  \	   //
+			//	  U(B)  P(R)   //
+			//	       /	   //
+			//	      N(R)	   //
+			*////////////////////
+			//2. 나는 왼레드, 부모도 레드, 삼촌은 블랙 상황.
+			localParent = nowNode->_parent;
+			if (nowNode == localParent->_left &&
+				nowNode->_color == NODE_COLOR::RED &&
+				localParent->_color == NODE_COLOR::RED &&
+				localParent->_parent->_left->_color == NODE_COLOR::BLACK)
+			{
+				wcout << L"type 2. nowNode is " << nowNode->_value << endl;
+
+				//	색상만 맞추는걸로 끝내지 않고, 회전을 통해서 밸런스를 맞춰 준다.
+				//	회전을 위해선 좌측 또는 우측의 한쪽 방향으로 노드가 몰려있는게 좋다.
+				//	그러므로 우선  3번조건 상황으로 만든다.
+
+				//	나는 레드, 부모의 왼쪽 노드, 부모도 레드, 인 경우에는
+				//	부모기준으로 우회전하여 신규노드를 부모의 위치로 올리고,
+				//	부모를 신노드 오른쪽 자식으로 옮겨서 밸런스를 맞춘다.
+				rotateRight(localParent);
+
+				//	이로서 2번 상황은 3번 상황으로 변경 되었음.
+				nowNode = localParent;
+			}
+
+			/*///////////////////
+			//		 GP        //
+			//		/  \	   //
+			//	  U(B)  P(R)   //
+			//	         \	   //
+			//	          N(R) //
+			*////////////////////
+			//3. 나는 오른레드, 부모도 레드, 삼촌은 블랙
+			localParent = nowNode->_parent;
+			if (nowNode == localParent->_right &&
+				nowNode->_color == NODE_COLOR::RED &&
+				localParent->_color == NODE_COLOR::RED &&
+				localParent->_parent->_left->_color == NODE_COLOR::BLACK)
+			{
+				wcout << L"type 3. nowNode is " << nowNode->_value << endl;
+
+				//	부모를 블랙으로
+				localParent->_color = NODE_COLOR::BLACK;
+
+				//	할아버지는 레드로
+				localParent->_parent->_color = NODE_COLOR::RED;
+
+				//	할아버지 기준으로 좌회전
+				rotateLeft(localParent->_parent);
+			}
 		}
 
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		/*///////////////////
-		//		 GP        //
-		//		/  \	   //
-		//	  U(B)  P(R)   //
-		//	       /	   //
-		//	      N(R)	   //
-		*////////////////////
-		//2. 나는 왼레드, 부모도 레드, 삼촌은 블랙 상황.
-		localParent = nowNode->_parent;
-		if (nowNode == localParent->_left &&
-			nowNode->_color == NODE_COLOR::RED &&
-			localParent->_color == NODE_COLOR::RED &&
-			localParent->_parent->_left->_color == NODE_COLOR::BLACK)
-		{
-			wcout << L"type 2. nowNode is " << nowNode->_value << endl;
-
-			//	색상만 맞추는걸로 끝내지 않고, 회전을 통해서 밸런스를 맞춰 준다.
-			//	회전을 위해선 좌측 또는 우측의 한쪽 방향으로 노드가 몰려있는게 좋다.
-			//	그러므로 우선  3번조건 상황으로 만든다.
-
-			//	나는 레드, 부모의 왼쪽 노드, 부모도 레드, 인 경우에는
-			//	부모기준으로 우회전하여 신규노드를 부모의 위치로 올리고,
-			//	부모를 신노드 오른쪽 자식으로 옮겨서 밸런스를 맞춘다.
-			rotateRight(localParent);
-
-			//	이로서 2번 상황은 3번 상황으로 변경 되었음.
-			nowNode = localParent;
-		}
-
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		/*///////////////////
-		//		 GP        //
-		//		/  \	   //
-		//	  U(B)  P(R)   //
-		//	         \	   //
-		//	          N(R) //
-		*////////////////////
-		//3. 나는 오른레드, 부모도 레드, 삼촌은 블랙
-		localParent = nowNode->_parent;
-		if (nowNode == localParent->_right &&
-			nowNode->_color == NODE_COLOR::RED &&
-			localParent->_color == NODE_COLOR::RED &&
-			localParent->_parent->_left->_color == NODE_COLOR::BLACK)
-		{
-			wcout << L"type 3. nowNode is " << nowNode->_value << endl;
-
-			//	부모를 블랙으로
-			localParent->_color = NODE_COLOR::BLACK;
-
-			//	할아버지는 레드로
-			localParent->_parent->_color = NODE_COLOR::RED;
-
-			//	할아버지 기준으로 좌회전!
-			rotateLeft(localParent->_parent);
-		}
-
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
-		/////////////////////////////////////////////////////////////////////////////////////////////////////
+		// 1. 유형 아니면 break
+		break;
 	}
 
 	// 마지막에 루트는 블랙
@@ -687,27 +653,6 @@ void AlignInsert(int param)
 		}
 	}
 
-	// TODO : 여기 수정해야함.. 141넣으면 문제 발생
 	// 타고 올라갈때 부모가 할아버지의 어느 방향인지 계속 계산
-	while (1)
-	{
-		// 부모가 블랙인 경우 바로 리턴
-		if (localNode->_parent->_color == NODE_COLOR::BLACK)
-		{
-			wcout << L"parent is BLACK.. NO Align" << endl;
-			return;
-		}
-
-		if (localNode->_parent == localNode->_parent->_parent->_left)
-		{
-			wcout << L"parent is Grand's Left.. leftAlign" << endl;
-			grandLeftAlign(localNode);
-		}
-		else
-		{
-			wcout << L"parent is Grand's Right.. RightAlign" << endl;
-			grandRightAlign(localNode);
-		}
-	}
-
+	fixedAlign(localNode);
 }
