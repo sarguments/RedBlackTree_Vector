@@ -158,10 +158,7 @@ void inDeleteNode(st_Node * parent, st_Node * node)
 			g_rootNode = delNodeChild;
 
 			// 루트의 부모 X
-			if (g_rootNode != nullptr)
-			{
-				g_rootNode->_parent = nullptr;
-			}
+			g_rootNode->_parent = nullptr;
 		}
 		else
 		{
@@ -655,4 +652,334 @@ void AlignInsert(int param)
 
 	// 타고 올라갈때 부모가 할아버지의 어느 방향인지 계속 계산
 	fixedAlign(localNode);
+}
+
+void AlignDelete(int param)
+{
+	wcout << L"----------------------------------------------" << endl;
+
+	//  1. 사용자가[삭제를 원한 노드] 를 찾음
+	st_Node* toDelNode = FindNode(param);
+	if (toDelNode == nullptr)
+	{
+		wcout << L"not Found" << endl;
+		return;
+	}
+
+	NODE_COLOR nodeColor = NODE_COLOR::NONE;
+	st_Node* replaceNode = &Nil;
+	st_Node* rightLowNode = nullptr;
+
+	// 왼쪽이나 오른쪽 자식만 있는 경우
+	if (toDelNode->_left == &Nil || toDelNode->_right == &Nil)
+	{
+		st_Node* delNodeChild = &Nil;
+		st_Node* parent = toDelNode->_parent;
+
+		// 삭제할 노드의 자식노드
+		if (toDelNode->_left != &Nil)
+		{
+			// 왼쪽만 있는 경우
+			delNodeChild = toDelNode->_left;
+		}
+		else if (toDelNode->_right != &Nil)
+		{
+			// 오른쪽만 있는 경우
+			delNodeChild = toDelNode->_right;
+		}
+		// 자식노드가 없는 경우는 &Nil
+
+		// 삭제할 노트가 루트노드이면
+		if (toDelNode == g_rootNode)
+		{
+			g_rootNode = delNodeChild;
+
+			// 루트의 부모 X
+			g_rootNode->_parent = nullptr;
+		}
+		else
+		{
+			// 루트가 아니라면..
+			// 삭제하려는 노드가 왼쪽 자식이었을 경우
+			if (parent->_left == toDelNode)
+			{
+				// 삭제하려는 노드의 자식을 부모의 왼쪽에 꽂는다
+				parent->_left = delNodeChild;
+			}
+			else
+			{
+				// 삭제하려는 노드의 자식을 부모의 오른쪽에 꽂는다
+				parent->_right = delNodeChild;
+			}
+
+			// 부모 설정
+			delNodeChild->_parent = parent;
+		}
+
+		// 정렬을 위함(둘인 경우와 맞춤)
+		replaceNode = delNodeChild;
+		nodeColor = toDelNode->_color;
+
+		// TODO : rightLowNode
+		rightLowNode = toDelNode;
+	}
+	// 자식이 둘인 경우
+	else
+	{
+		//	2. 이진트리 구조에 따라서 실제로[지울 노드]를 찾음.
+		st_Node* rightLowNodeParent = rightLowNodeParent = toDelNode; // 오른쪽에서 가장 작은 노드의 부모
+
+		// TODO : rightLowNode
+		rightLowNode = rightLowNode = toDelNode->_right; // 오른쪽에서 가장 작은 노드
+
+	   // rightLowNode 가 실제로 [지울노드]
+	   // 오른쪽에서 가장 작은 노드를 찾음
+		while (rightLowNode->_left != &Nil)
+		{
+			rightLowNodeParent = rightLowNode;
+			rightLowNode = rightLowNode->_left;
+		}
+
+		// [지울노드]가 왼쪽 자식이었을 경우
+		if (rightLowNode == rightLowNodeParent->_left)
+		{
+			// [지울노드]의 오른쪽 자식을
+			// [지울노드] 부모의 왼쪽으로
+			rightLowNodeParent->_left = rightLowNode->_right;
+		}
+		// [지울노드]가 오른쪽 자식이었을 경우
+		else
+		{
+			rightLowNodeParent->_right = rightLowNode->_right;
+		}
+
+		// TODO : 부모 연결
+		rightLowNode->_right->_parent = rightLowNodeParent;
+
+		//	3.[삭제를 원한 노드]에[지울노드]의 데이터를 대입.
+		toDelNode->_value = rightLowNode->_value;
+
+		// 삭제하기 전에 색상 정보 백업
+		nodeColor = rightLowNode->_color;
+
+		//	+ [지울노드] 의 자식을 Replace 노드라고 하겠음.
+		//	+ [지울노드] 의 자식은 하나가 있거나 Nil 만 있거나 둘중 하나인 상황
+		//	+ [지울노드] 의 자식이 실제로 있다면 그 노드를 Replace 로
+		if (rightLowNode->_right != &Nil)
+		{
+			replaceNode = rightLowNode->_right;
+		}
+	}
+
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+
+	//	4.[지울노드] 를 실제로 트리에서 삭제 함.
+	//g_memPool.Free(rightLowNode);
+	//--g_nodeCount;
+
+	//	+ [지울노드] 가 BLACK 인 경우에만 아래의 밸런스 작업에 돌입
+	if (nodeColor != NODE_COLOR::BLACK)
+	{
+		wcout << L"toDeleteNode is RED.. No Align" << endl;
+
+		// TODO : 4.[지울노드] 를 실제로 트리에서 삭제 함.
+		g_memPool.Free(rightLowNode);
+		--g_nodeCount;
+
+		return;
+	}
+
+	///////////////////////////////////////////////
+	////////////////// 정렬 파트 //////////////////
+	///////////////////////////////////////////////
+
+	//	아래 부터를 반복문으로 돌림
+	while (1)
+	{
+		wcout << L"in Loop Part" << endl;
+
+		//	1. Replace 노드가 RED 라면... Replace 노드를 BLACK 으로 바꾸면서 끝.
+		if (replaceNode->_color == NODE_COLOR::RED)
+		{
+			wcout << L"replace is RED.. Align End" << endl;
+			replaceNode->_color = NODE_COLOR::BLACK;
+			break;
+		}
+
+		//	2. Replace 노드가 Root 여도 끝. (Root 는 무조건 BLACK 으로 바꿔줌)
+		if (replaceNode == g_rootNode)
+		{
+			wcout << L"replace is Root.. Align End" << endl;
+			break;
+		}
+
+		st_Node* siblingNode = nullptr;
+		st_Node* parentNode = nullptr;
+
+		// TODO : 부모 설정하고 들어감
+		parentNode = replaceNode->_parent;
+
+		//	- 부모기준으로 Replace 가 왼쪽 / 오른쪽 구분
+		if (replaceNode == parentNode->_left)
+		{
+			// Replace가 왼쪽인 경우
+			wcout << L"replace is parent's LEFT" << endl;
+
+			// TODO : 형제노드
+			siblingNode = parentNode->_right;
+
+			//	3. 형제노드가 레드인 상황.
+			if (siblingNode->_color == NODE_COLOR::RED)
+			{
+				wcout << L"sibling is RED" << endl;
+				//st_Node* preParent = parentNode;
+
+				//	형제를 블랙으로 바꾼뒤,
+				siblingNode->_color = NODE_COLOR::BLACK;
+
+				//	부모를 레드로 바꾸고, 부모기준 좌회전
+				parentNode->_color = NODE_COLOR::RED;
+				rotateLeft(parentNode);
+
+				//	TODO : Replace 기준으로 위 루프를 돌아 처음부터 다시 밸런스 작업
+				//replaceNode = preParent->_left;
+
+				continue;
+			}
+
+			//	4. 형제가 블랙인 상황 & 형제의 두 자식이 모두 블랙이라니!
+			if (siblingNode->_color == NODE_COLOR::BLACK &&
+				siblingNode->_left->_color == NODE_COLOR::BLACK &&
+				siblingNode->_right->_color == NODE_COLOR::BLACK)
+			{
+				wcout << L"sibling is BLACK && two Child is BLACK" << endl;
+				//	형제를 레드로!
+				siblingNode->_color = NODE_COLOR::RED;
+
+				//	부모기준으로(부모를 Replace 로 바꿔서) 본 함수 처리를 모두 다시
+				replaceNode = parentNode;
+				continue;
+			}
+
+			//	5. 형제가 블랙인 상황 & 형제의 왼 자식이 레드!
+			if (siblingNode->_color == NODE_COLOR::BLACK &&
+				siblingNode->_left->_color == NODE_COLOR::RED)
+			{
+				wcout << L"sibling is BLACK  && left Child is RED" << endl;
+				//	형제의 왼자식을 블랙으로 바꾼 후 형제를 레드로 바꾸고
+				siblingNode->_left->_color = NODE_COLOR::BLACK;
+				siblingNode->_color = NODE_COLOR::RED;
+
+				//	형제를 우회전 시켜서  레드를 오른쪽으로 옮김.
+				rotateRight(siblingNode);
+
+				// TODO : 형제 다시 지정?
+				siblingNode = parentNode->_right;
+			}
+
+			//	6. 형제가 블랙이고 & 형제의 오른자식이 레드라면
+			if (siblingNode->_color == NODE_COLOR::BLACK &&
+				siblingNode->_right->_color == NODE_COLOR::RED)
+			{
+				wcout << L"sibling is BLACK && right child is RED.. Align End" << endl;
+				//	형제를 부모와 같은 색으로 바꿔주고, 형제의 오른자식은 블랙으로, 부모는 블랙으로 바꿔주고
+				siblingNode->_color = parentNode->_color;
+				siblingNode->_right->_color = NODE_COLOR::BLACK;
+				parentNode->_color = NODE_COLOR::BLACK;
+
+				//	부모기준 좌회전.
+				rotateLeft(parentNode);
+
+				//	총 블랙개수에 영향이 없으므로 모든 상황 종료.
+				//	깔끔한 상황종료 처리를 위해 Replace 를 Root 로 바꿔버림.
+				replaceNode = g_rootNode;
+			}
+		}
+		else
+		{
+			// Replace가 오른쪽인 경우
+			wcout << L"replace is parent's RIGHT" << endl;
+
+			// TODO : 형제노드
+			siblingNode = parentNode->_left;
+
+			//	3. 형제노드가 레드인 상황.
+			if (siblingNode->_color == NODE_COLOR::RED)
+			{
+				wcout << L"sibling is RED" << endl;
+				//st_Node* preParent = parentNode;
+
+				//	형제를 블랙으로 바꾼뒤,
+				siblingNode->_color = NODE_COLOR::BLACK;
+
+				//	부모를 레드로 바꾸고, 부모기준 우회전
+				parentNode->_color = NODE_COLOR::RED;
+				rotateRight(parentNode);
+
+				//	TODO : Replace 기준으로 위 루프를 돌아 처음부터 다시 밸런스 작업
+				//replaceNode = preParent->_right;
+
+				continue;
+			}
+
+			//	4. 형제가 블랙인 상황 & 형제의 두 자식이 모두 블랙이라니!
+			if (siblingNode->_color == NODE_COLOR::BLACK &&
+				siblingNode->_left->_color == NODE_COLOR::BLACK &&
+				siblingNode->_right->_color == NODE_COLOR::BLACK)
+			{
+				wcout << L"sibling is BLACK && two child is BLACK" << endl;
+				//	형제를 레드로!
+				siblingNode->_color = NODE_COLOR::RED;
+
+				//	부모기준으로(부모를 Replace 로 바꿔서) 본 함수 처리를 모두 다시
+				replaceNode = parentNode;
+				continue;
+			}
+
+			//	5. 형제가 블랙인 상황 & 형제의 오른 자식이 레드!
+			if (siblingNode->_color == NODE_COLOR::BLACK &&
+				siblingNode->_right->_color == NODE_COLOR::RED)
+			{
+				wcout << L"sibling is BLACK && right child is RED" << endl;
+				//	형제의 오른자식을 블랙으로 바꾼 후 형제를 레드로 바꾸고
+				siblingNode->_right->_color = NODE_COLOR::BLACK;
+				siblingNode->_color = NODE_COLOR::RED;
+
+				//	형제를 좌회전 시켜서 레드를 왼쪽으로 옮김.
+				rotateLeft(siblingNode);
+
+				// TODO : 형제 다시 지정?
+				siblingNode = parentNode->_left;
+			}
+
+			//	6. 형제가 블랙이고 & 형제의 왼자식이 레드라면
+			if (siblingNode->_color == NODE_COLOR::BLACK &&
+				siblingNode->_left->_color == NODE_COLOR::RED)
+			{
+				wcout << L"sibling is BLACK && left child is RED.. Align End" << endl;
+				//	형제를 부모와 같은 색으로 바꿔주고, 형제의 왼자식은 블랙으로, 부모는 블랙으로 바꿔주고
+				siblingNode->_color = parentNode->_color;
+				siblingNode->_left->_color = NODE_COLOR::BLACK;
+				parentNode->_color = NODE_COLOR::BLACK;
+
+				//	부모기준 우회전.
+				rotateRight(parentNode);
+
+				//	총 블랙개수에 영향이 없으므로 모든 상황 종료.
+				//	깔끔한 상황종료 처리를 위해 Replace 를 Root 로 바꿔버림.
+				replaceNode = g_rootNode;
+			}
+		}
+	}
+
+	/////////////////////////////////////////////////
+
+	wcout << L"NODE is DELETED" << endl;
+
+	// TODO : 4.[지울노드] 를 실제로 트리에서 삭제 함.
+	g_memPool.Free(rightLowNode);
+	--g_nodeCount;
+
+	g_rootNode->_color = NODE_COLOR::BLACK;
 }
