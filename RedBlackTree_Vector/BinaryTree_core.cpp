@@ -720,7 +720,7 @@ void AlignDelete(int param)
 		replaceNode = delNodeChild;
 		nodeColor = toDelNode->_color;
 
-		// TODO : rightLowNode
+		// 밑에서 삭제하기 위해
 		rightLowNode = toDelNode;
 	}
 	// 자식이 둘인 경우
@@ -728,8 +728,6 @@ void AlignDelete(int param)
 	{
 		//	2. 이진트리 구조에 따라서 실제로[지울 노드]를 찾음.
 		st_Node* rightLowNodeParent = rightLowNodeParent = toDelNode; // 오른쪽에서 가장 작은 노드의 부모
-
-		// TODO : rightLowNode
 		rightLowNode = rightLowNode = toDelNode->_right; // 오른쪽에서 가장 작은 노드
 
 	   // rightLowNode 가 실제로 [지울노드]
@@ -753,7 +751,7 @@ void AlignDelete(int param)
 			rightLowNodeParent->_right = rightLowNode->_right;
 		}
 
-		// TODO : 부모 연결
+		// 부모 연결
 		rightLowNode->_right->_parent = rightLowNodeParent;
 
 		//	3.[삭제를 원한 노드]에[지울노드]의 데이터를 대입.
@@ -774,21 +772,23 @@ void AlignDelete(int param)
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
 
-	//	4.[지울노드] 를 실제로 트리에서 삭제 함.
-	//g_memPool.Free(rightLowNode);
-	//--g_nodeCount;
-
 	//	+ [지울노드] 가 BLACK 인 경우에만 아래의 밸런스 작업에 돌입
 	if (nodeColor != NODE_COLOR::BLACK)
 	{
 		wcout << L"toDeleteNode is RED.. No Align" << endl;
 
-		// TODO : 4.[지울노드] 를 실제로 트리에서 삭제 함.
+		// 4.[지울노드] 를 실제로 트리에서 삭제 함.
 		g_memPool.Free(rightLowNode);
 		--g_nodeCount;
 
 		return;
 	}
+
+	wcout << L"NODE is DELETED" << endl;
+
+	// [지울노드] 를 실제로 트리에서 삭제 함.
+	g_memPool.Free(rightLowNode);
+	--g_nodeCount;
 
 	///////////////////////////////////////////////
 	////////////////// 정렬 파트 //////////////////
@@ -817,7 +817,7 @@ void AlignDelete(int param)
 		st_Node* siblingNode = nullptr;
 		st_Node* parentNode = nullptr;
 
-		// TODO : 부모 설정하고 들어감
+		// 부모 설정하고 들어감
 		parentNode = replaceNode->_parent;
 
 		//	- 부모기준으로 Replace 가 왼쪽 / 오른쪽 구분
@@ -874,7 +874,7 @@ void AlignDelete(int param)
 				//	형제를 우회전 시켜서  레드를 오른쪽으로 옮김.
 				rotateRight(siblingNode);
 
-				// TODO : 형제 다시 지정?
+				// 형제 다시 지정?
 				siblingNode = parentNode->_right;
 			}
 
@@ -949,7 +949,7 @@ void AlignDelete(int param)
 				//	형제를 좌회전 시켜서 레드를 왼쪽으로 옮김.
 				rotateLeft(siblingNode);
 
-				// TODO : 형제 다시 지정?
+				// 형제 다시 지정
 				siblingNode = parentNode->_left;
 			}
 
@@ -974,12 +974,6 @@ void AlignDelete(int param)
 	}
 
 	/////////////////////////////////////////////////
-
-	wcout << L"NODE is DELETED" << endl;
-
-	// TODO : 4.[지울노드] 를 실제로 트리에서 삭제 함.
-	g_memPool.Free(rightLowNode);
-	--g_nodeCount;
 
 	g_rootNode->_color = NODE_COLOR::BLACK;
 }
