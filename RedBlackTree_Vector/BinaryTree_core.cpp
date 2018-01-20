@@ -4,7 +4,7 @@
 #include "BinaryTree_core.h"
 #include "MemoryPool_G41.h"
 
-CMemoryPool<st_Node> g_memPool(400, true);
+CMemoryPool<st_Node> g_memPool(100, false);
 st_Node* g_rootNode;
 int g_nodeCount;
 

@@ -78,9 +78,6 @@ private:
 	char* _poolBuf;
 	bool _isPlacement;
 	bool _isDynamic;
-
-	const __int64 CODE_ALLOC_NEW = 0x2525252525252525;
-	const __int64 CODE_ALLOC_NOT_NEW = 0x2525252525252526;
 };
 
 // 생성자. iBlockNum 이 0이면 동적(프리리스트)
@@ -99,17 +96,22 @@ CMemoryPool<DATA>::CMemoryPool(int iBlockNum, bool bPlacementNew)
 	_poolBuf = (char*)malloc(sizeof(st_BLOCK_NODE) * _allocCount);
 	st_BLOCK_NODE* localNodePtr = (st_BLOCK_NODE*)_poolBuf;
 
-	for (int i = 0; i < _allocCount; i++)
+	// plcaement 일 경우 초기화 X
+	if (_isPlacement == true)
 	{
-		// plcaement 일 경우 초기화 X
-		if (_isPlacement == true)
+		for (int i = 0; i < _allocCount; i++)
 		{
-			localNodePtr[i]._code = CODE_ALLOC_NOT_NEW;
+			localNodePtr[i]._code = 0x2525252525252525;
+			++_useCount;
 		}
-		else
+	}
+	else
+	{
+		for (int i = 0; i < _allocCount; i++)
 		{
-			localNodePtr[i]._code = CODE_ALLOC_NEW;
+			localNodePtr[i]._code = 0x2525252525252525;
 			new (&localNodePtr[i]._block) DATA;
+			++_useCount;
 		}
 	}
 
@@ -131,69 +133,49 @@ CMemoryPool<DATA>::CMemoryPool(int iBlockNum, bool bPlacementNew)
 template <class DATA>
 CMemoryPool<DATA>::~CMemoryPool()
 {
-	if (_isDynamic == true)
-	{
-		return;
-	}
-
-	st_BLOCK_NODE* localNodePtr = (st_BLOCK_NODE*)_poolBuf;
-
-	for (int i = 0; i < _allocCount; i++)
-	{
-		if (localNodePtr[i]._code == CODE_ALLOC_NEW)
-		{
-			localNodePtr[i]._block.~DATA();
-		}
-	}
-
 	free(_poolBuf);
 }
 
 template <class DATA>
 DATA * CMemoryPool<DATA>::Alloc(void)
 {
-	// 꽉 차있으면 실패
-	if (GetUseCount() >= _allocCount && _isDynamic == false)
+	if (_isDynamic == true)
 	{
-		return nullptr;
-	}
-
-	// 동적 리스트인데 탑이 널포인터이면 메모리 할당하고 리턴
-	if (_isDynamic == true && _topPtr == nullptr)
-	{
-		st_BLOCK_NODE* newNode = (st_BLOCK_NODE*)malloc(sizeof(st_BLOCK_NODE));
-		new (&newNode->_block) DATA;
-
-		newNode->_code = CODE_ALLOC_NEW;
-		newNode->_nextNode = nullptr;
-		_topPtr = nullptr;
-
-		++_allocCount;
-		++_useCount;
-
-		return &(newNode->_block);
-	}
-	// 그 외에는 빈 노드에 있는 메모리 리턴
-	else
-	{
-		// 노드가 아닌 블럭 리턴
-		DATA* toReturnPtr = &(_topPtr->_block);
-
-		// placement true일 경우
-		if (_isPlacement == true)
+		// 프리리스트는 이미 할당한 것 중에 쓸수 있는게 있으면 빼서 쓰는 것.. top이 널인지 확인
+		if (_topPtr == nullptr)
 		{
-			new (toReturnPtr) DATA;
+			// top이 널이면 새로 동적 메모리 할당
+			++_allocCount;
+			++_useCount;
+
+			char* newMem = (char*)malloc(sizeof(st_BLOCK_NODE));
+			new (newMem) st_BLOCK_NODE;
+
+			st_BLOCK_NODE* newNode = (st_BLOCK_NODE*)newMem;
+			newNode->_code = 0x2525252525252525;
+			newNode->_nextNode = nullptr;
+
+			return &newNode->_block;
 		}
-
-		// topPtr 다음 노드로
-		_topPtr = _topPtr->_nextNode;
-
-		// 사용중인 사이즈 증가
-		++_useCount;
-
-		// 오브젝트 반환
-		return toReturnPtr;
 	}
+
+	// 노드가 아닌 블럭 리턴
+	DATA* toReturnPtr = &(_topPtr->_block);
+
+	// placement true일 경우
+	if (_isPlacement == true)
+	{
+		new (toReturnPtr) DATA;
+	}
+
+	// topPtr 다음 노드로
+	_topPtr = _topPtr->_nextNode;
+
+	// 사용중인 사이즈 증가
+	++_useCount;
+
+	// 오브젝트 반환
+	return toReturnPtr;
 }
 
 template <class DATA>
@@ -203,7 +185,7 @@ bool CMemoryPool<DATA>::Free(DATA * pData)
 	st_BLOCK_NODE* toFreeNode = (st_BLOCK_NODE*)((char*)pData - (sizeof(__int64) + sizeof(st_BLOCK_NODE*)));
 
 	// 코드 체크(내가 만든 오브젝트 인지)
-	if (!(toFreeNode->_code == CODE_ALLOC_NEW || toFreeNode->_code == CODE_ALLOC_NOT_NEW))
+	if (toFreeNode->_code != 0x2525252525252525)
 	{
 		return false;
 	}
